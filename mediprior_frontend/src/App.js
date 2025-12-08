@@ -7,44 +7,50 @@ import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar'; 
 
 // Import Pages
-import LandingPage from './pages/LandingPage';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import FindDoctors from './pages/FindDoctors';
 import MyConnections from './pages/MyConnections';
 import PatientReportsPage from './pages/PatientReportsPage';
+import ChatPage from './pages/ChatPage'; 
 import CalendarPage from './pages/CalendarPage';
-import ChatPage from './pages/ChatPage';
+import LandingPage from './pages/LandingPage'; 
 
-// Import your CSS
 import './index.css'; 
 
 const AppContent = () => {
     const location = useLocation();
     const { user } = useAuth(); 
-    const showSidebar = user && location.pathname !== '/login' && location.pathname !== '/signup';
+    
+    // Only show sidebar if user is logged in AND not on public pages
+    const showSidebar = user && 
+                        location.pathname !== '/login' && 
+                        location.pathname !== '/signup' && 
+                        location.pathname !== '/';
 
     return (
-        <div className={showSidebar ? "app-layout" : "" }>
+        <div className={showSidebar ? "app-layout" : ""}>
             {showSidebar && <Sidebar />}
             <main className={showSidebar ? "main-content" : "main-content-full"}>
                 <Routes>
-                    {/* These routes are for non-logged-in users */}
+                    {/* --- Public Routes --- */}
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     
-                    {/* These routes are for logged-in users */}
-                    <Route path="/" element={user ? <Dashboard /> : <Login />} />
+                    {/* --- Protected Routes --- */}
                     <Route path="/dashboard" element={<Dashboard />} /> 
                     <Route path="/find-doctors" element={<FindDoctors />} />
                     <Route path="/connections" element={<MyConnections />} />
                     <Route path="/reports" element={<PatientReportsPage />} />
                     
-                    {/* Placeholders */}
-                    <Route path="/chat" element={<ChatPage/>} />
-                    <Route path="/calendar" element={<CalendarPage/>} />
+                    {/* --- THIS IS THE FIX --- */}
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="/chat/:connectionId" element={<ChatPage />} />
+                    {/* ------------------------- */}
+                    
+                    <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/settings" element={<div><h1 className="theme-title">Settings (Under Construction)</h1></div>} />
                 </Routes>
             </main>

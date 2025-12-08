@@ -1,18 +1,21 @@
 // src/pages/FindDoctors.js
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Row, Col, Card, Button, Alert, Spinner, ListGroup } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 
 function FindDoctors() {
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    // This state will track button clicks *in real time*
     const [requestStatus, setRequestStatus] = useState({});
+    
     const { authTokens } = useAuth();
+    const navigate = useNavigate(); // 2. Initialize hook
 
-    const fetchDoctors = React.useCallback(async () => {
+    // 3. Use useCallback to fix dependency warnings and prevent infinite loops
+    const fetchDoctors = useCallback(async () => {
         if (!authTokens) return;
         setLoading(true);
         setError('');
@@ -26,13 +29,12 @@ function FindDoctors() {
             setError('Could not load doctors list.');
         }
         setLoading(false);
-    },[authTokens]);
+    }, [authTokens]);
 
     useEffect(() => {
         fetchDoctors();
     }, [fetchDoctors]);
 
-    // Handle sending a connection request
     const handleConnect = async (doctorId) => {
         setRequestStatus(prev => ({ ...prev, [doctorId]: 'Sending...' }));
         try {
@@ -40,7 +42,7 @@ function FindDoctors() {
                 { doctor_id: doctorId }, 
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );
-            // Refresh the whole list to get the new "PENDING" status
+            // Refresh the list to get the new "PENDING" status
             fetchDoctors();
         } catch (err) {
             console.error('Error sending connection request:', err);
@@ -48,16 +50,13 @@ function FindDoctors() {
         }
     };
 
-    // --- NEW: Handle removing a connection ---
     const handleRemoveConnection = async (doctorId) => {
         if (window.confirm('Are you sure you want to remove this connection?')) {
             setRequestStatus(prev => ({ ...prev, [doctorId]: 'Removing...' }));
             try {
-                // Call our new DELETE endpoint
                 await axios.delete(`http://127.0.0.1:8000/api/connections/${doctorId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
-                // Refresh the list to show the "Connect" button again
                 fetchDoctors();
             } catch (err) {
                 console.error('Error removing connection:', err);
@@ -66,11 +65,8 @@ function FindDoctors() {
         }
     };
 
-    // --- NEW: Smart button rendering logic ---
     const renderConnectionButton = (doctor) => {
-        // Check our local state first (for "Sending..."/"Removing...")
         const localStatus = requestStatus[doctor.user_id];
-        // If no local state, use the status from the API
         const apiStatus = doctor.connection_status;
         const status = localStatus || apiStatus;
 
@@ -78,9 +74,16 @@ function FindDoctors() {
             case 'ACCEPTED':
                 return (
                     <>
-                        <Button variant="outline-primary" size="sm" className="me-2" disabled>
+                        {/* 4. NAVIGATE TO CHAT USING CONNECTION ID */}
+                        <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            className="me-2" 
+                            onClick={() => navigate(`/chat/${doctor.connection_id}`)}
+                        >
                             Message
                         </Button>
+                        
                         <Button 
                             variant="outline-danger" 
                             size="sm"
@@ -107,13 +110,13 @@ function FindDoctors() {
                 return (
                     <Button variant="danger" disabled>Failed</Button>
                 );
-            default: // null or REJECTED
+            default: // null (No connection yet) or REJECTED
                 return (
                     <Button
                         className="theme-button"
                         onClick={() => handleConnect(doctor.user_id)}
                     >
-                        Send Connection Request
+                        Connect
                     </Button>
                 );
         }
@@ -126,6 +129,13 @@ function FindDoctors() {
         return <Alert variant="danger" className="m-4">{error}</Alert>;
     }
 
+    const getAvatar = (doctor) => {
+        if (doctor.profile_photo) {
+            return `http://127.0.0.1:8000${doctor.profile_photo}`;
+        }
+        return `https://ui-avatars.com/api/?name=${doctor.name}&background=3a7bff&color=fff&rounded=true`;
+    };
+
     return (
         <Container className="mt-4">
             <h2 className="theme-title mb-4">Find a Doctor</h2>
@@ -135,19 +145,25 @@ function FindDoctors() {
                         <Col md={6} lg={4} key={doctor.user_id} className="mb-4">
                             <Card className="theme-card h-100">
                                 <Card.Body className="d-flex flex-column">
-                                    <Card.Title className="theme-title">{doctor.name}</Card.Title>
-                                    <Card.Subtitle className="mb-2 text-muted">{doctor.specialization}</Card.Subtitle>
-                                    <Card.Text>
-                                        <strong>Qualifications:</strong> {doctor.qualification}<br />
-                                        <strong>Experience:</strong> {doctor.years_of_experience} years<br />
-                                        <small className="text-muted">{doctor.clinic_name}</small>
-                                    </Card.Text>
-                                    <Card.Text className="flex-grow-1">
-                                        {doctor.bio}
-                                    </Card.Text>
+                                    <div className="text-center mb-3">
+                                        <img 
+                                            src={getAvatar(doctor)} 
+                                            alt={doctor.name} 
+                                            style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} 
+                                        />
+                                    </div>
+                                    <Card.Title className="theme-title text-center">{doctor.name}</Card.Title>
+                                    <Card.Subtitle className="mb-2 text-center" style={{color: 'var(--text-secondary)'}}>
+                                        {doctor.specialization}
+                                    </Card.Subtitle>
                                     
-                                    <div className="mt-auto">
-                                        {/* Use the new button-rendering function */}
+                                    <ListGroup variant="flush" className="flex-grow-1" style={{backgroundColor: 'transparent'}}>
+                                        <ListGroup.Item><strong>Experience:</strong> {doctor.years_of_experience} years</ListGroup.Item>
+                                        <ListGroup.Item><strong>Qualification:</strong> {doctor.qualification}</ListGroup.Item>
+                                        <ListGroup.Item><small>{doctor.clinic_name || 'Online Practice'}</small></ListGroup.Item>
+                                    </ListGroup>
+                                    
+                                    <div className="mt-3 text-center">
                                         {renderConnectionButton(doctor)}
                                     </div>
                                 </Card.Body>

@@ -1,84 +1,93 @@
 // src/pages/Login.js
 import React, { useState } from 'react';
-import { Container, Form, Button, Row, Col, Card, Alert } from 'react-bootstrap';
-import { useAuth } from '../context/AuthContext'; // <-- Uses the new AuthContext
+import { Alert, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
 
 function Login() {
+    const { loginUser } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    
-    // Gets the login function from our new context
-    const { loginUser } = useAuth(); 
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         setError('');
-
-        // Calls the centralized login function
-        const result = await loginUser(email, password); 
-
-        if (result === 'error') {
-            setError('Login failed: Invalid email or password.');
+        
+        const result = await loginUser(email, password);
+        if (result === 'success') {
+            // loginUser handles redirect
+        } else {
+            setError('Invalid credentials. Please try again.');
+            setLoading(false);
         }
-        // The AuthContext now handles all success redirects!
     };
 
     return (
-        <Container className="mt-5">
-            <Row className="justify-content-md-center">
-                <Col md={6}>
-                    {/* Uses the new CSS class from index.css */}
-                    <Card className="theme-card">
-                        <Card.Body>
-                            <Card.Title as="h2" className="text-center mb-4 theme-title">
-                                Login to Mediprior
-                            </Card.Title>
-                            
-                            {error && <Alert variant="danger">{error}</Alert>}
+        <div className="auth-wrapper">
+            <div className="auth-container-split">
+                {/* --- Left Side: Image --- */}
+                <div className="auth-image-side">
+                    <div className="auth-image-content">
+                        <h2 className="auth-quote">"Your health is your greatest wealth."</h2>
+                        <p style={{opacity: 0.9}}>Access your dashboard to manage appointments, view reports, and consult with top doctors.</p>
+                    </div>
+                </div>
 
-                            <Form onSubmit={handleSubmit}>
-                                <Form.Group className="mb-3" controlId="formBasicEmail">
-                                    <Form.Label>Email address</Form.Label>
-                                    <Form.Control 
-                                        type="email" 
-                                        placeholder="Enter email" 
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="theme-input" // <-- Uses new theme class
-                                        required
-                                    />
-                                </Form.Group>
+                {/* --- Right Side: Form --- */}
+                <div className="auth-form-side">
+                    <div className="auth-header">
+                        <h2 className="auth-title">Welcome Back</h2>
+                        <p className="auth-subtitle">Please enter your details to sign in.</p>
+                    </div>
 
-                                <Form.Group className="mb-3" controlId="formBasicPassword">
-                                    <Form.Label>Password</Form.Label>
-                                    <Form.Control 
-                                        type="password" 
-                                        placeholder="Password" 
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="theme-input" // <-- Uses new theme class
-                                        required
-                                    />
-                                </Form.Group>
+                    {error && <Alert variant="danger">{error}</Alert>}
 
-                                <div className="d-grid mt-4">
-                                    <Button type="submit" size="lg" className="theme-button">
-                                        Login
-                                    </Button>
-                                </div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="modern-input-group">
+                            <FiMail className="input-icon" />
+                            <input 
+                                type="email" 
+                                className="modern-input" 
+                                placeholder="Email Address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required 
+                            />
+                        </div>
 
-                                <div className="text-center mt-3">
-                                    <span className="text-muted">Don't have an account? </span>
-                                    <Link to="/signup" className="theme-link">Sign Up</Link>
-                                </div>
-                            </Form>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
+                        <div className="modern-input-group">
+                            <FiLock className="input-icon" />
+                            <input 
+                                type="password" 
+                                className="modern-input" 
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required 
+                            />
+                        </div>
+
+                        <div className="d-flex justify-content-between mb-4">
+                            <small><Link to="#" className="text-muted text-decoration-none">Forgot Password?</Link></small>
+                        </div>
+
+                        <button type="submit" className="modern-btn" disabled={loading}>
+                            {loading ? <Spinner animation="border" size="sm" /> : 'Sign In'}
+                        </button>
+                    </form>
+
+                    <div className="text-center mt-4">
+                        <p className="text-muted">
+                            Don't have an account? <Link to="/signup" style={{color: 'var(--accent-primary)', fontWeight: 'bold', textDecoration: 'none'}}>Sign up free <FiArrowRight/></Link>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
 

@@ -210,46 +210,63 @@ class PatientHealthMetricView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# core/views.py
+
+# ... (imports remain the same) ...
+from django.utils import timezone # Make sure this is imported at the top
+
+# ... (other views) ...
+
 class AppointmentListView(APIView):
+    """
+    Handles Listing and Creating Appointments.
+    Auto-cleans up old slots when accessed.
+    """
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
         user = request.user
         doctor_id = self.request.query_params.get('doctor_id')
+        now = timezone.now()
 
-        # --- NEW: Auto-complete past appointments ---
-        # Find booked appointments in the past and mark them complete
+        # --- SMART CLEANUP LOGIC ---
+        # 1. If a BOOKED appointment is in the past, mark it COMPLETED
         Appointment.objects.filter(
             status=Appointment.AppointmentStatus.BOOKED,
-            end_time__lt=timezone.now()
+            end_time__lt=now
         ).update(status=Appointment.AppointmentStatus.COMPLETED)
-        # ---------------------------------------------
+
+        # 2. If an AVAILABLE slot is in the past, DELETE it (remove clutter)
+        Appointment.objects.filter(
+            status=Appointment.AppointmentStatus.AVAILABLE,
+            end_time__lt=now
+        ).delete()
+        # ---------------------------
         
+        queryset = Appointment.objects.none()
+
         if user.user_type == 'PATIENT':
             if doctor_id:
-                # Patient viewing a doctor's AVAILABLE slots (future only)
+                # Patient viewing a specific doctor's AVAILABLE slots
                 queryset = Appointment.objects.filter(
                     doctor_id=doctor_id,
                     status=Appointment.AppointmentStatus.AVAILABLE,
-                    start_time__gte=timezone.now() # Only show future slots
+                    start_time__gte=now # Only show future slots
                 )
             else:
-                # Patient viewing their OWN schedule (all statuses)
+                # Patient viewing their OWN booked/completed schedule
                 queryset = Appointment.objects.filter(patient=user)
         
         elif user.user_type == 'DOCTOR':
+            # Doctor sees EVERYTHING (Available, Booked, Completed)
             queryset = Appointment.objects.filter(doctor=user)
         
-        else:
-            return Response({"error": "Invalid user type"}, status=400)
-            
         serializer = AppointmentSerializer(queryset, many=True)
-        return Response(serializer.data, status=200)
-    
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request):
-        # This is ONLY for a DOCTOR to create new, available slots
         if request.user.user_type != User.UserType.DOCTOR:
-            raise permissions.PermissionDenied("Only doctors can create appointment slots.")
+            return Response({"error": "Only doctors can create slots."}, status=status.HTTP_403_FORBIDDEN)
             
         serializer = AppointmentCreateSerializer(data=request.data)
         if serializer.is_valid():

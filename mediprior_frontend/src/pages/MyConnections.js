@@ -1,20 +1,20 @@
 // src/pages/MyConnections.js
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, ListGroup, Tabs, Tab } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Button, Alert, Spinner, ListGroup, Tabs, Tab } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { FiCheck, FiX } from 'react-icons/fi'; // Icons for accept/reject
-import { useNavigate } from 'react-router-dom';
+import { FiCheck, FiX } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 
 function MyConnections() {
     const [connections, setConnections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const { user, authTokens, fetchProfile } = useAuth(); // <-- Add fetchProfile
-    const navigate = useNavigate();
+    const { user, authTokens, fetchProfile } = useAuth();
+    const navigate = useNavigate(); // 2. Initialize hook
 
-    // Re-usable function to fetch connections
-    const fetchConnections = async () => {
+    // 3. Use useCallback to prevent infinite loops
+    const fetchConnections = useCallback(async () => {
         if (!authTokens) return;
         setLoading(true);
         setError('');
@@ -29,24 +29,21 @@ function MyConnections() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [authTokens]);
 
-    // Fetch connections when the component loads
     useEffect(() => {
-        if (user) { // Fetch for either user type
+        if (user) {
             fetchConnections();
         }
-    }, [user, authTokens]);
+    }, [user, fetchConnections]);
 
-    // --- DOCTOR: Function to Accept or Reject ---
     const handleAction = async (connectionId, action) => {
         try {
             await axios.post('http://127.0.0.1:8000/api/connections/', 
                 { connection_id: connectionId, action: action },
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );
-            fetchConnections(); // Refresh the list
-            // also refresh the sidebar count
+            fetchConnections(); 
             if (fetchProfile) fetchProfile(); 
         } catch (err) {
             console.error('Error managing connection:', err);
@@ -54,15 +51,14 @@ function MyConnections() {
         }
     };
     
-    // --- PATIENT: Function to Remove a Connection ---
-    const handleRemove = async (doctorId) => {
-        const confirmMsg = "Are you sure you want to remove this connection?";
-        if (window.confirm(confirmMsg)) {
+    const handleRemove = async (targetUserId) => {
+        if (window.confirm("Are you sure you want to remove this connection?")) {
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/connections/${doctorId}/`, {
+                // We send the ID of the USER we want to disconnect from
+                await axios.delete(`http://127.0.0.1:8000/api/connections/${targetUserId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
-                fetchConnections(); // Refresh the list
+                fetchConnections(); 
             } catch (err) {
                 console.error('Error removing connection:', err);
                 setError('Could not remove connection.');
@@ -70,12 +66,10 @@ function MyConnections() {
         }
     };
 
-    // Helper to get avatar
     const getAvatar = (profile) => {
         if (profile?.profile_photo) {
             return `http://127.0.0.1:8000${profile.profile_photo}`;
         }
-        // Use a default name if profile is null
         const name = profile?.name || (user.user_type === 'PATIENT' ? 'Doctor' : 'Patient');
         return `https://ui-avatars.com/api/?name=${name}&background=3a7bff&color=fff&rounded=true`;
     };
@@ -120,9 +114,25 @@ function MyConnections() {
                                     </div>
                                 </div>
                                 <div>
-                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => navigate(`/chat/${conn.id}`)}>Message</Button>
-                                    {/* --- DOCTOR CAN NOW REMOVE --- */}
-                                    <Button variant="outline-danger" size="sm" onClick={() => handleRemove(conn.patient.id)}>
+                                    {/* 4. Message Button for Doctors */}
+                                    <Button 
+                                        variant="outline-primary" 
+                                        size="sm" 
+                                        className="me-2"
+                                        onClick={() => navigate(`/chat/${conn.id}`)}
+                                    >
+                                        Message
+                                    </Button>
+                                    {/* 5. Remove Button for Doctors (Pass patient ID) */}
+                                    {/* Note: conn.patient is just the ID in the serializer, 
+                                        so we might need to access it differently depending on serializer depth.
+                                        If it fails, we check if we need to adjust the serializer. 
+                                        But typically, if it's nested, we need the ID. */}
+                                    <Button 
+                                        variant="outline-danger" 
+                                        size="sm" 
+                                        onClick={() => handleRemove(conn.patient_profile.user_id || conn.patient)} 
+                                    >
                                         <FiX /> Remove
                                     </Button>
                                 </div>
@@ -155,19 +165,29 @@ function MyConnections() {
                                     </div>
                                 </div>
                                 <div>
+                                    {/* 6. Message Button for Patients */}
                                     <Button 
                                         variant="outline-primary" 
                                         size="sm" 
-                                        className="me-2"
+                                        className="me-2" 
                                         onClick={() => navigate(`/chat/${conn.id}`)}
                                     >
                                         Message
+                                    </Button>
+                                    
+                                    <Button 
+                                        variant="outline-danger" 
+                                        size="sm" 
+                                        onClick={() => handleRemove(conn.doctor_profile.user_id)}
+                                    >
+                                        <FiX /> Remove
                                     </Button>
                                 </div>
                             </ListGroup.Item>
                         )) : <p className="text-muted">You have no accepted connections yet.</p>}
                     </ListGroup>
                 </Tab>
+
                 <Tab eventKey="requests" title={`Requests Sent (${pending.length})`}>
                     <ListGroup>
                         {pending.length > 0 ? pending.map(conn => (
@@ -189,6 +209,7 @@ function MyConnections() {
                         )) : <p className="text-muted">You have no pending requests.</p>}
                     </ListGroup>
                 </Tab>
+                
                 <Tab eventKey="rejected" title={`Rejected (${rejected.length})`}>
                      <ListGroup>
                         {rejected.length > 0 ? rejected.map(conn => (
@@ -214,17 +235,14 @@ function MyConnections() {
         );
     };
 
-    // --- Main Render Logic ---
     if (loading) {
         return <div className="text-center mt-5"><Spinner animation="border" style={{ color: 'var(--accent-primary)' }}/></div>;
     }
-
+    
     return (
         <Container>
             <h1 className="theme-title mb-4">My Connections</h1>
             {error && <Alert variant="danger">{error}</Alert>}
-            
-            {/* This is the new, smart logic */}
             {user?.user_type === 'DOCTOR' && renderDoctorView()}
             {user?.user_type === 'PATIENT' && renderPatientView()}
         </Container>
