@@ -133,12 +133,9 @@
                 "Tell me about yourself"
             ],
             "responses": [
-                "I'm Jamila, your Personal Therapeutic AI Assistant. How are you feeling today",
-                "I'm Pandora, a Therapeutic AI Assitant designed to assist you. Tell me about yourself.",
-                "I'm Pandora. I am a conversational agent designed to mimic a therapist. So how are you feeling today?",
-                "You can call me Pandora.",
-                "I'm Pandora!",
-                "Call me Pandora"
+                "I'm your Personal Therapeutic AI Assistant. How are you feeling today",
+                "I'm a Therapeutic AI Assitant designed to assist you. Tell me about yourself.",
+                "I'm I am a conversational agent designed to mimic a therapist. So how are you feeling today?"
             ]
         },
         {
@@ -150,6 +147,21 @@
                 "I can provide general advice regarding anxiety and depression, answer questions related to mental health and make daily conversations. Do not consider me as a subsitute for an actual mental healthcare worker. Please seek help if you don't feel satisfied with me."
             ]
         },
+        {
+      "tag": "career_encouragement",
+      "patterns": [
+        "I will try",
+        "I can do it",
+        "thanks for the advice",
+        "sounds good",
+        "okay I will"
+      ],
+      "responses": [
+        "That is the spirit! Small steps lead to big destinations. You've got this!",
+        "I am so glad to hear that. I believe in your vision. Keep pushing forward!",
+        "Wonderful! Remember, I am here whenever you need to brainstorm or just vent. Good luck!"
+      ]
+    },
         {
             "tag": "creation",
             "patterns": [
@@ -404,6 +416,25 @@
             "responses": [
                 "I'm very sorry to hear that but you have so much to look forward to. Please seek help by contacting: 9152987821."
             ]
+        },
+         {
+        "tag": "school_stress",
+        "patterns": [
+            "my exam went bad",
+            "I failed my test",
+            "I got bad grades",
+            "I am worried about my results",
+            "I didn't study enough",
+            "the paper was very hard",
+            "I messed up my exam"
+        ],
+        "responses": [
+            "I understand how disappointing that feels, but don't be too hard on yourself. One exam doesn't define you.",
+            "It happens to the best of us. Take a deep breath, let this one go, and focus on doing your best next time.",
+            "I'm sorry to hear that. It is okay to feel bad for a bit, but remember you can always bounce back.",
+            "Don't worry. You are capable and you will do much better next time. Just focus on what is ahead.",
+            "Grades are just numbers on a paper. Your mental peace is more important. We can try again next time!"
+        ]
         },
         {
             "tag": "hate-you",
@@ -1700,6 +1731,22 @@
             ]
         },
         {
+            "tag": "Extreme disease",
+            "patterns": [
+                "Brain tumor",
+                "Cancer",
+                "Heart attack",
+                "Heart Disease",
+                "Skin Disease",
+                "Accident"
+            ],
+            "responses": [
+                "I am a mental Chatbot! \nFor these kind of problems I would suggest consult a doctor immediatly",
+                "I am just AI, please visit doctor, don't ignore symptoms",
+                "Don't relay on a chatbot for this...please consult a doctor"
+            ]
+        },
+        {
             "tag": "fact-3393534",
             "patterns": [
                 "Someone I care about has a brain injury. Where can I find more information?"
@@ -2550,6 +2597,46 @@
             ]
         },
         {
+            "tag": "burnout",
+            "patterns": [
+                "I am so tired of working",
+                "I have no motivation at my job",
+                "Work is killing me",
+                "I feel like a failure at my career",
+                "I'm burnt out"
+            ],
+            "responses": [
+                "Burnout is your body's way of saying you've been strong for too long. Are you able to take even a small break today?",
+                "Work stress can feel suffocating. Remember that your productivity does not define your worth. What's one small thing you can offload today?"
+            ]
+        },
+        {
+            "tag": "imposter-syndrome",
+            "patterns": [
+                "I feel like a fraud",
+                "I'm not as good as people think",
+                "I don't belong here",
+                "I'm going to be found out"
+            ],
+            "responses": [
+                "That sounds like imposter syndrome. It often hits high-achievers the hardest. You earned your place through hard work, not luck.",
+                "Feeling like a fraud is actually very common. It doesn't mean you aren't capable; it just means your inner critic is being too loud right now."
+            ]
+        },
+        {
+            "tag": "grounding-exercise",
+            "patterns": [
+                "I'm having a panic attack",
+                "Help me calm down right now",
+                "I can't breathe",
+                "I'm spiraling"
+            ],
+            "responses": [
+                "Let's try the 5-4-3-2-1 technique. Tell me 5 things you can see right now.",
+                "I'm right here with you. Take a breath. Hold it for 4 seconds... now let it out slowly for 6. Can you feel your feet on the floor?"
+            ]
+        },
+        {
             "tag": "find_help",
             "patterns": [
                 "How to find mental health professional for myself",
@@ -2575,6 +2662,179 @@
                 ""
             ]
         },
+        {
+      "tag": "breakup",
+      "patterns": [
+        "my girlfriend broke up with me",
+        "my boyfriend left me",
+        "my heart is broken",
+        "we broke up",
+        "I miss my ex",
+        "I feel lonely without them"
+      ],
+      "responses": [
+        "I am so sorry you are going through this. It's okay to cry and let it out. Time truly heals, even if it doesn't feel like it right now.",
+        "Heartbreak is incredibly painful, but it doesn't mean you are unlovable. Take this time to care for yourself like you would a best friend.",
+        "It's okay to miss them, but remember you were a whole person before them and you are a whole person now. Give yourself time."
+      ]
+    },
+    {
+      "tag": "grief",
+      "patterns": [
+        "I lost someone close to me",
+        "my friend died",
+        "my relative passed away",
+        "I am missing someone who died",
+        "dealing with death"
+      ],
+      "responses": [
+        "I am deeply sorry for your loss. Grief is the price we pay for love, and it's okay to not be okay right now.",
+        "Please be gentle with yourself. There is no timeline for grief. Hold on to the good memories you shared.",
+        "I can't take the pain away, but I am here. Sending you virtual strength. Take it one breath at a time."
+      ]
+    },
+    {
+      "tag": "job_stress",
+      "patterns": [
+        "I didn't get the job",
+        "I failed the interview",
+        "I am unemployed",
+        "I can't find a job",
+        "I feel like a failure in my career"
+      ],
+      "responses": [
+        "Rejection is just redirection. This specific door closed so a better one could open. Don't give up.",
+        "Your worth is not defined by a job title. You have skills and value. Take a break, then try again.",
+        "Job hunting is exhausting, and it's normal to feel defeated. But remember, you only need one 'Yes'. Keep going."
+      ]
+    },
+    {
+      "tag": "school_stress",
+      "patterns": [
+        "my exam went bad",
+        "I failed my test",
+        "I got bad grades",
+        "I am worried about my results",
+        "I didn't study enough",
+        "I am failing school"
+      ],
+      "responses": [
+        "I understand how disappointing that feels, but don't be too hard on yourself. One exam doesn't define your future.",
+        "It happens to the best of us. Take a deep breath, let this one go, and focus on doing your best next time.",
+        "Grades are just numbers on a paper. Your mental health is more important. We can try again next time!"
+      ]
+    },
+    {
+      "tag": "bullying",
+      "patterns": [
+        "people are bullying me",
+        "they make fun of me",
+        "I am being harassed",
+        "kids are mean to me",
+        "I feel unsafe at school/work"
+      ],
+      "responses": [
+        "I am so sorry. Please know that their cruelty says everything about them and nothing about you.",
+        "You do not deserve this. You are important and you matter. Is there an adult or authority figure you can trust to help?",
+        "Bullying is never okay. Stay strong and protect your peace. You are stronger than their words."
+      ]
+    },
+    {
+      "tag": "insecurity_body",
+      "patterns": [
+        "I feel ugly",
+        "I hate my skin color",
+        "I am too short",
+        "I am too fat",
+        "I am too skinny",
+        "I don't like how I look"
+      ],
+      "responses": [
+        "You are worthy and beautiful exactly as you are. Society's standards are fake; your value is real.",
+        "Your body is the instrument of your life, not just an ornament. Be kind to it. It carries you through every day.",
+        "Confidence is the best outfit. Rock what you have! The right people will love you for who you are, not just how you look."
+      ]
+    },
+    {
+      "tag": "family_pressure",
+      "patterns": [
+        "my parents are pressuring me",
+        "my family expects too much",
+        "I am being compared to my cousins",
+        "my dad is angry at me",
+        "family toxic"
+      ],
+      "responses": [
+        "It is your life to live, not theirs. It is okay to set boundaries even with family.",
+        "Comparisons are the thief of joy. You are on your own unique journey. Trust your own pace.",
+        "I know it's heavy to carry their expectations. Just do your best, that is enough. You don't have to be perfect for them."
+      ]
+    },
+    {
+      "tag": "career_confusion",
+      "patterns": [
+        "I want to do business",
+        "they want me to do a job",
+        "parents forcing me to work",
+        "I don't want a 9 to 5 job",
+        "I want to be an entrepreneur",
+        "confused about career",
+        "job vs business"
+      ],
+      "responses": [
+        "That is a tough spot. It is your life and your dream. Have you tried explaining your business plan to them calmly?",
+        "Following your passion is scary but rewarding. Maybe you can start your business on the side while doing a job for safety?",
+        "It takes courage to want to build something of your own. Don't let the pressure kill your entrepreneurial spirit."
+      ]
+    },
+    {
+        "tag": "",
+        "patterns": [
+            "what should I do",
+            "next move",
+            "how to come out of this",
+            "how to become fine"
+        ],
+        "responses": [
+        "Don't stress out, take deep breath and try consulting someone who you trust",
+        "It happens. Take a deep breath, accept it, every day is not same.",
+        "Focus on yourself.....things happen, you need to move on in life",
+        "Everything will be okay, take deep breath and focus more on yourself"
+      ]
+
+    },
+    {
+      "tag": "school_stress",
+      "patterns": [
+        "my exam went bad",
+        "I failed my test",
+        "I got bad grades",
+        "I am worried about my results",
+        "I didn't study enough"
+      ],
+      "responses": [
+        "I understand. One exam does not define your entire future. Be kind to yourself today.",
+        "It happens. Take a deep breath, accept it, and promise yourself to try a different strategy next time.",
+        "Grades are just numbers. Your mental peace is more important. You will bounce back!"
+      ]
+    },
+    {
+      "tag": "career_planning_advice",
+      "patterns": [],
+      "responses": [
+        "That's completely okay. You don't need to explain it yet. Maybe start by writing your ideas down on paper just for yourself?",
+        "It can be scary to talk about it. How about we focus on small steps? Have you looked into what skills you need for your business?",
+        "No pressure. Sometimes actions speak louder. Is there a small project you can start on weekends to prove your idea works?"
+      ]
+    },
+    {
+      "tag": "career_encouragement",
+      "patterns": [],
+      "responses": [
+        "That's great! Communication is key. Keep pushing for your dreams.",
+        "I'm glad you are taking steps forward. I believe in your vision!"
+      ]
+    },
         {
             "tag": "treatment_tips",
             "patterns": [

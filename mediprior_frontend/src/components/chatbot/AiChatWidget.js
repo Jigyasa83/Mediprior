@@ -1,8 +1,10 @@
+// src/components/chatbot/AiChatWidget.js
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Button, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Card, Button, Form, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { FiMessageCircle, FiX, FiSend, FiZap, FiActivity } from 'react-icons/fi';
+import { FiMessageCircle, FiX, FiSend } from 'react-icons/fi';
 
 const styles = {
     floatingBtn: {
@@ -66,6 +68,10 @@ function AIChatbot() {
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // --- NEW: Context State for Memory ---
+    const [chatContext, setChatContext] = useState(null); 
+
     const { authTokens } = useAuth();
     const messagesEndRef = useRef(null);
 
@@ -78,6 +84,7 @@ function AIChatbot() {
     const sendMessage = async (text, isTool = false) => {
         if (!text.trim()) return;
 
+        // 1. Update UI with User Message immediately
         if (!isTool) {
             setMessages(prev => [...prev, { sender: 'user', text: text }]);
         }
@@ -85,12 +92,27 @@ function AIChatbot() {
         setLoading(true);
 
         try {
-            const payload = isTool ? { tool: text } : { message: text };
-            const response = await axios.post('http://127.0.0.1:8000/api/ai-chat/', payload, {
+            // 2. Prepare Payload (Adding previous_context)
+            const basePayload = isTool ? { tool: text } : { message: text };
+            
+            const payload = {
+                ...basePayload,
+                previous_context: chatContext // <--- Sending Memory to Backend
+            };
+
+            // 3. Send Request (Updated URL to /core/)
+            const response = await axios.post('http://127.0.0.1:8000/core/ai-chat/', payload, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
 
             const data = response.data;
+
+            // 4. Update Memory from Backend Response
+            if (data.previous_context) {
+                setChatContext(data.previous_context);
+            }
+
+            // 5. Update UI with Bot Response
             setMessages(prev => [...prev, { sender: 'bot', text: data.response }]);
             
             // If it was a mood check, maybe show a toast or console log the score
@@ -99,6 +121,7 @@ function AIChatbot() {
             }
 
         } catch (error) {
+            console.error("Chat Error:", error);
             setMessages(prev => [...prev, { sender: 'bot', text: "I'm having trouble connecting right now. Please try again." }]);
         } finally {
             setLoading(false);

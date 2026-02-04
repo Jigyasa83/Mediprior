@@ -7,6 +7,19 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.http import Http404
 from django.utils import timezone
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.contrib.sites.shortcuts import get_current_site
+from django.urls import reverse
+from django.core.mail import send_mail
+from django.conf import settings
+import os
+import json
+import random
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
 
 # Import all models
 from .models import (
@@ -43,6 +56,53 @@ class UserRegistrationView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class RequestPasswordResetEmail(APIView):
+    def post(self, request):
+        email = request.data.get('email', '')
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(user)
+            
+            # Link points to REACT Frontend
+            absurl = f"http://localhost:3000/password-reset-confirm/{uidb64}/{token}/"
+            
+            email_body = f'Hello, \n Use the link below to reset your password. \n {absurl}'
+            data = {'email_body': email_body, 'to_email': user.email, 'email_subject': 'Reset your Password'}
+            
+            # Send Email
+            send_mail(
+                data['email_subject'],
+                data['email_body'],
+                settings.EMAIL_HOST_USER,
+                [data['to_email']],
+                fail_silently=False,
+            )
+        
+        # We return 200 regardless to prevent email enumeration (security practice)
+        return Response({'success': 'We have sent you a link to reset your password'}, status=status.HTTP_200_OK)
+
+# --- 2. Set New Password (Verifies Token) ---
+class SetNewPasswordAPIView(APIView):
+    def patch(self, request):
+        try:
+            password = request.data.get('password')
+            token = request.data.get('token')
+            uidb64 = request.data.get('uidb64')
+
+            id = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
+
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response({'error': 'Token is invalid or expired'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            user.set_password(password)
+            user.save()
+            return Response({'success': 'Password reset successful'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': 'Something went wrong'}, status=status.HTTP_401_UNAUTHORIZED)
+        
 class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser) 
@@ -133,7 +193,6 @@ class ConnectionRequestView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# --- THIS IS THE MISSING VIEW ---
 class DoctorConnectionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
@@ -170,7 +229,6 @@ class DoctorConnectionView(APIView):
         else:
             return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
 
-# --- THIS IS THE OTHER MISSING VIEW ---
 class PatientConnectionDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     # Change 'doctor_id' to 'target_user_id' for clarity in future, but keep variable name for now
@@ -187,7 +245,8 @@ class PatientConnectionDetailView(APIView):
             connection.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (User.DoesNotExist, DoctorPatientConnection.DoesNotExist):
-            return Response({"error": "Connection not found."}, status=status.HTTP_404_NOT_FOUND)            
+            return Response({"error": "Connection not found."}, status=status.HTTP_404_NOT_FOUND)
+            
 class PatientHealthMetricView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -209,13 +268,6 @@ class PatientHealthMetricView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# core/views.py
-
-# ... (imports remain the same) ...
-from django.utils import timezone # Make sure this is imported at the top
-
-# ... (other views) ...
 
 class AppointmentListView(APIView):
     """
@@ -282,11 +334,6 @@ class AppointmentListView(APIView):
 class AppointmentDetailView(APIView):
     """
     Handles a single appointment.
-    - PATCH:
-        - Patient: Books an available slot.
-        - Doctor: (Future) Adds notes/prescription.
-    - DELETE:
-        - Patient/Doctor: Cancels an appointment.
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -313,30 +360,154 @@ class AppointmentDetailView(APIView):
         
         serializer = AppointmentSerializer(appointment)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
+# --- AI TRAINING SECTION ---
+INTENTS_PATH = os.path.join(settings.BASE_DIR, 'core', 'intents.json')
+TRAINING_DATA = {"intents": []}
+
+try:
+    with open(INTENTS_PATH, 'r', encoding='utf-8') as f:
+        TRAINING_DATA = json.load(f)
+        print(f"✅ Loaded {len(TRAINING_DATA['intents'])} intents.")
+except FileNotFoundError:
+    print(f"❌ Error: intents.json not found at {INTENTS_PATH}")
+
+# Train the Model (Runs once when server starts)
+print("Training AI Model...")
+patterns = []
+tags = []
+
+for intent in TRAINING_DATA['intents']:
+    for pattern in intent['patterns']:
+        patterns.append(pattern)
+        tags.append(intent['tag'])
+
+# Initialize Vectorizer and Classifier
+vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words='english', min_df=1)
+clf = LinearSVC()
+
+if patterns:
+    X = vectorizer.fit_transform(patterns)
+    clf.fit(X, tags)
+    print("✅ AI Model Trained Successfully!")
+else:
+    print("⚠️ No patterns found. Model not trained.")
+
+# --- CONTEXT FLOW LOGIC (The "Memory" Brain) ---
+FLOW_LOGIC = {
+    "career_confusion": {
+        "no": "career_planning_advice",    # If you say "no", it gives advice
+        "nah": "career_planning_advice",
+        "yes": "career_encouragement",     # If you say "yes", it encourages you
+        "maybe": "career_planning_advice"
+    },
+    # --------------------------------------------------
+    "problem": { 
+        "no": "no-approach",
+        "not": "no-approach",
+        "yes": "user-agree"
+    },
+    "no-approach": { 
+        "yes": "learn-more",
+        "sure": "learn-more",
+        "ok": "learn-more"
+    },
+    "user-agree": { 
+        "yes": "meditation",
+        "ok": "meditation",
+        "right": "meditation"
+    },
+    "problem": { 
+        "no": "no-approach",
+        "not": "no-approach",
+        "yes": "user-agree"
+    },
+    "no-approach": { 
+        "yes": "learn-more",
+        "sure": "learn-more",
+        "ok": "learn-more"
+    },
+    "user-agree": { 
+        "yes": "meditation",
+        "ok": "meditation",
+        "right": "meditation"
+    },
+    "meditation": { 
+        "thanks": "user-meditation",
+        "done": "user-meditation",
+        "better": "user-meditation"
+    },
+    "sad": {
+        "yes": "sad", 
+        "why": "sad"
+    }
+}
+
 class AIChatView(APIView):
     """
-    Simple API for the AI Health Assistant.
+    Context-Aware AI Chatbot Endpoint
+    Uses TF-IDF + LinearSVC for intent classification
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        user_message = request.data.get('message', '')
+        user_message = request.data.get('message', '').lower()
         tool_request = request.data.get('tool', None)
-
-        # If user clicked a tool button
-        if tool_request and tool_request in COPING_TOOLS:
-            return Response({
-                "response": COPING_TOOLS[tool_request],
-                "mood_score": 5,
-                "emotion": "Calm",
-                "action": "TOOL"
-            })
+        
+        # 1. Handle UI Tool Buttons (Breathing, etc.)
+        if tool_request:
+             if tool_request in COPING_TOOLS:
+                return Response({
+                    "response": COPING_TOOLS[tool_request],
+                    "tag": "tool_usage",
+                    "previous_context": None
+                })
 
         if not user_message:
             return Response({"error": "Message is required"}, status=400)
 
-        # Analyze the text
-        result = analyze_message(user_message)
+        # 2. Handle Reset Commands
+        if user_message in ['reset', 'clear', 'restart', 'hi', 'hello']:
+            if user_message not in ['hi', 'hello']:
+                return Response({
+                    "response": "Memory cleared. How can I help?", 
+                    "tag": "reset",
+                    "previous_context": None
+                })
+
+        # 3. Predict Intent (Machine Learning)
+        user_vec = vectorizer.transform([user_message])
+        try:
+            predicted_tag = clf.predict(user_vec)[0]
+        except:
+            predicted_tag = "default"
         
-        return Response(result)
+        # 4. Context Logic (Memory)
+        last_tag = request.data.get('previous_context', None) 
+        final_tag = predicted_tag
+        
+        if last_tag in FLOW_LOGIC:
+            transitions = FLOW_LOGIC[last_tag]
+            for keyword, next_tag in transitions.items():
+                if keyword in user_message:
+                    final_tag = next_tag
+                    break
+        
+        # 5. Fetch Response (SAFE MODE)
+        response_text = "I'm not sure I understand. Could you rephrase that?"
+        
+        # --- CRITICAL FIX: Handle Suicide Logic FIRST to prevent crashes ---
+        if final_tag == "suicide":
+             response_text = "CRISIS_DETECTED"
+        else:
+            # Only try to get JSON responses if it's NOT a crisis
+            intent_data = next((item for item in TRAINING_DATA['intents'] if item["tag"] == final_tag), None)
+            if intent_data and 'responses' in intent_data:
+                response_text = random.choice(intent_data['responses'])
+
+        # 6. Return Response
+        return Response({
+            "response": response_text,
+            "tag": final_tag,
+            "previous_context": final_tag 
+        })

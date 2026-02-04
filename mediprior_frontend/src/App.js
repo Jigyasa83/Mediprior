@@ -1,7 +1,7 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { useAuth } from './context/AuthContext'; 
+import { AuthProvider, useAuth } from './context/AuthContext'; // Import AuthProvider here
 
 // Import Components
 import Sidebar from './components/Sidebar'; 
@@ -16,6 +16,8 @@ import PatientReportsPage from './pages/PatientReportsPage';
 import ChatPage from './pages/ChatPage'; 
 import CalendarPage from './pages/CalendarPage';
 import LandingPage from './pages/LandingPage'; 
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPasswordConfirm from './pages/ResetPasswordConfirm';
 
 import './index.css'; 
 
@@ -39,16 +41,17 @@ const AppContent = () => {
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/password-reset-confirm/:uid/:token" element={<ResetPasswordConfirm />} />
                     {/* --- Protected Routes --- */}
                     <Route path="/dashboard" element={<Dashboard />} /> 
                     <Route path="/find-doctors" element={<FindDoctors />} />
                     <Route path="/connections" element={<MyConnections />} />
                     <Route path="/reports" element={<PatientReportsPage />} />
                     
-                    {/* --- THIS IS THE FIX --- */}
+                    {/* Chat Routes */}
                     <Route path="/chat" element={<ChatPage />} />
                     <Route path="/chat/:connectionId" element={<ChatPage />} />
-                    {/* ------------------------- */}
                     
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/settings" element={<div><h1 className="theme-title">Settings (Under Construction)</h1></div>} />
@@ -61,7 +64,10 @@ const AppContent = () => {
 function App() {
   return (
     <BrowserRouter>
-      <AppContent /> 
+      {/* AuthProvider MUST wrap the content so useAuth works inside */}
+      <AuthProvider>
+         <AppContent /> 
+      </AuthProvider>
     </BrowserRouter>
   );
 }

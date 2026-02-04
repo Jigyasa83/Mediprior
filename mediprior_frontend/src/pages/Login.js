@@ -72,7 +72,7 @@ function Login() {
                         </div>
 
                         <div className="d-flex justify-content-between mb-4">
-                            <small><Link to="#" className="text-muted text-decoration-none">Forgot Password?</Link></small>
+                            <small><Link to="/forgot-password" className="text-muted text-decoration-none">Forgot Password?</Link></small>
                         </div>
 
                         <button type="submit" className="modern-btn" disabled={loading}>

@@ -1,26 +1,10 @@
-"""
-URL configuration for mediprior_backend project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 
 from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings             # <-- 1. Import settings
 from django.conf.urls.static import static # <-- 2. Import static
 
-from core.views import MyTokenObtainPairView
+from core.views import MyTokenObtainPairView, RequestPasswordResetEmail, SetNewPasswordAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -36,6 +20,8 @@ urlpatterns = [
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     # Refresh Token URL
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/request-reset-email/', RequestPasswordResetEmail.as_view(), name="request-reset-email"),
+    path('api/password-reset-complete/', SetNewPasswordAPIView.as_view(), name="password-reset-complete"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
